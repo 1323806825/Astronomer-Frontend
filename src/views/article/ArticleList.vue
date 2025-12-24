@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
 import { ElMessage } from 'element-plus'
-import { Document, View, Star, Loading } from '@element-plus/icons-vue'
+import { Document, Star, Loading, User } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -132,16 +132,14 @@ const formatDate = (date: string) => {
           </div>
           <div class="card-content">
             <h3 class="card-title">{{ article.title }}</h3>
-            <p class="card-summary">{{ article.summary }}</p>
             <div class="card-footer">
               <div class="author-info">
+                <el-avatar :src="article.author_avatar" :size="32">
+                  <el-icon><User /></el-icon>
+                </el-avatar>
                 <span class="author-name">{{ article.author_name }}</span>
               </div>
               <div class="card-stats">
-                <span class="stat-item">
-                  <el-icon><View /></el-icon>
-                  {{ article.view_count }}
-                </span>
                 <span class="stat-item">
                   <el-icon><Star /></el-icon>
                   {{ article.like_count }}
@@ -240,7 +238,7 @@ const formatDate = (date: string) => {
   font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -250,18 +248,6 @@ const formatDate = (date: string) => {
   min-height: 48px;
 }
 
-.card-summary {
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-height: 1.6;
-}
-
 .card-footer {
   display: flex;
   justify-content: space-between;
@@ -269,17 +255,20 @@ const formatDate = (date: string) => {
 }
 
 .author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
   overflow: hidden;
 }
 
 .author-name {
   font-size: 13px;
-  color: #999;
+  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
+  font-weight: 500;
 }
 
 .card-stats {

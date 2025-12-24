@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
 import { ElMessage } from 'element-plus'
-import { View, Star, ChatDotRound, Collection, ChatLineSquare, Notebook, Loading } from '@element-plus/icons-vue'
+import { Star, Collection, ChatLineSquare, Notebook, Loading, User } from '@element-plus/icons-vue'
 import { categoryAPI, topicAPI, columnAPI } from '@/api'
 import type { Category, Topic, Column } from '@/types'
 import dayjs from 'dayjs'
@@ -195,15 +195,16 @@ const formatDate = (date: string) => {
                 />
                 <div class="article-info">
                   <h3 class="title">{{ article.title }}</h3>
-                  <p class="summary">{{ article.summary }}</p>
                   <div class="meta">
-                    <span class="author">作者: {{ article.author_name || '未知' }}</span>
-                    <span class="date">{{ formatDate(article.create_time) }}</span>
-                  </div>
-                  <div class="stats">
-                    <span><el-icon><View /></el-icon> {{ article.view_count }}</span>
-                    <span><el-icon><Star /></el-icon> {{ article.like_count }}</span>
-                    <span><el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}</span>
+                    <div class="author-info">
+                      <el-avatar :src="article.author_avatar" :size="32">
+                        <el-icon><User /></el-icon>
+                      </el-avatar>
+                      <span class="author">{{ article.author_name || '未知' }}</span>
+                    </div>
+                    <div class="stats">
+                      <span><el-icon><Star /></el-icon> {{ article.like_count }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -390,45 +391,52 @@ const formatDate = (date: string) => {
 }
 
 .title {
-  font-size: 18px;
-  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-}
-
-.summary {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.5;
+  color: #333;
 }
 
 .meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 10px;
+  align-items: center;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.author {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats {
   display: flex;
-  gap: 15px;
-  font-size: 13px;
-  color: #666;
+  gap: 12px;
+  font-size: 12px;
+  color: #999;
 }
 
 .stats span {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .load-more-indicator {

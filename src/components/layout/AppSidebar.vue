@@ -6,7 +6,8 @@ import {
   HomeFilled,
   Document,
   Edit,
-  EditPen
+  EditPen,
+  User
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -23,6 +24,7 @@ const menuItems = computed(() => {
   if (isLoggedIn.value) {
     baseItems.push({ path: '/drafts', icon: Edit, label: '我的草稿' })
     baseItems.push({ path: '/article/create', icon: EditPen, label: '发布' })
+    baseItems.push({ path: `/user/${userStore.user?.id}`, icon: User, label: '我' })
   }
 
   return baseItems

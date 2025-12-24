@@ -46,9 +46,6 @@ onUnmounted(() => {
 
 const handleCommand = (command: string) => {
   switch (command) {
-    case 'profile':
-      router.push(`/user/${currentUser.value?.id}`)
-      break
     case 'drafts':
       router.push('/drafts')
       break
@@ -121,10 +118,6 @@ const handleNotificationClick = () => {
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="profile">
-                  <el-icon><User /></el-icon>
-                  个人主页
-                </el-dropdown-item>
                 <el-dropdown-item command="drafts">
                   <el-icon><Edit /></el-icon>
                   我的草稿

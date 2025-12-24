@@ -279,7 +279,7 @@ const formatDate = (date: string) => {
 <style scoped>
 .article-detail-page {
   width: 100%;
-  min-height: 100vh;
+  min-height: 50vh;
   background: #f8f9fa;
   padding: 0;
 }
@@ -289,17 +289,19 @@ const formatDate = (date: string) => {
   max-width: 1400px;
   margin: 0 auto;
   background: white;
-  min-height: 100vh;
+  height: 70vh;
+  max-height: 70vh;
 }
 
 /* 左侧图片区域 */
 .left-section {
   flex: 0 0 60%;
   background: #000;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .image-container {
@@ -312,9 +314,10 @@ const formatDate = (date: string) => {
 }
 
 .main-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -331,6 +334,7 @@ const formatDate = (date: string) => {
 /* 右侧内容区域 */
 .right-section {
   flex: 1;
+  height: 100%;
   overflow-y: auto;
   padding: 32px 40px;
   background: white;

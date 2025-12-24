@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { userAPI, articleAPI } from '@/api'
 import type { User, Article, ArticleColumn } from '@/types'
+import ArticleDetailModal from '@/components/article/ArticleDetailModal.vue'
 import {
   Edit,
   Document,
@@ -44,6 +45,10 @@ const pageSize = ref(20)
 const hasMore = ref(true)
 const totalArticles = ref(0)
 const isInitialLoading = ref(true)
+
+// 文章详情模态窗口
+const showArticleModal = ref(false)
+const selectedArticleId = ref<number | null>(null)
 
 onMounted(() => {
   loadUserProfile()
@@ -230,7 +235,13 @@ const handleFollow = async () => {
 }
 
 const goToArticle = (id: number) => {
-  router.push({ name: 'article-detail', params: { id } })
+  selectedArticleId.value = id
+  showArticleModal.value = true
+}
+
+const handleCloseModal = () => {
+  showArticleModal.value = false
+  selectedArticleId.value = null
 }
 
 const goToColumn = (id: number) => {
@@ -486,6 +497,13 @@ const formatCount = (count: number) => {
         </div>
       </template>
     </el-skeleton>
+
+    <!-- 文章详情模态窗口 -->
+    <ArticleDetailModal
+      :visible="showArticleModal"
+      :article-id="selectedArticleId"
+      @close="handleCloseModal"
+    />
   </div>
 </template>
 

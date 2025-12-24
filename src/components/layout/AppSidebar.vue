@@ -22,8 +22,7 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 
 const menuItems = computed(() => {
   const baseItems = [
-    { path: '/', icon: HomeFilled, label: '首页' },
-    { path: '/articles', icon: Document, label: '文章' }
+    { path: '/', icon: HomeFilled, label: '首页' }
   ]
 
   if (isLoggedIn.value) {

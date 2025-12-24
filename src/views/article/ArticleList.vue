@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
+import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { Document, Star, Loading, User } from '@element-plus/icons-vue'
+import { Document, Star, StarFilled, Collection, Loading, User } from '@element-plus/icons-vue'
+import { articleAPI } from '@/api'
 import dayjs from 'dayjs'
+import ArticleDetailModal from '@/components/article/ArticleDetailModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 const articleStore = useArticleStore()
+const userStore = useUserStore()
 
 const currentPage = ref(1)
 const pageSize = ref(15)
@@ -20,6 +24,12 @@ const categoryId = ref<number | undefined>()
 const topicId = ref<number | undefined>()
 const keyword = ref<string>('')
 const pageTitle = ref('文章列表')
+
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+
+// 文章详情模态框
+const showArticleModal = ref(false)
+const selectedArticleId = ref<number | null>(null)
 
 onMounted(() => {
   // 读取 query 参数
@@ -144,11 +154,65 @@ const handleSortChange = (sort: string) => {
 }
 
 const goToDetail = (id: number) => {
-  router.push({ name: 'article-detail', params: { id } })
+  selectedArticleId.value = id
+  showArticleModal.value = true
+}
+
+const closeArticleModal = () => {
+  showArticleModal.value = false
+  selectedArticleId.value = null
 }
 
 const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
+}
+
+const handleLike = async (article: any, event: Event) => {
+  event.stopPropagation() // 防止触发卡片点击
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    if (article.is_liked) {
+      await articleAPI.unlike(article.id)
+      article.like_count--
+      article.is_liked = false
+    } else {
+      await articleAPI.like(article.id)
+      article.like_count++
+      article.is_liked = true
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const handleFavorite = async (article: any, event: Event) => {
+  event.stopPropagation() // 防止触发卡片点击
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    if (article.is_favorited) {
+      await articleAPI.unfavorite(article.id)
+      article.favorite_count--
+      article.is_favorited = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await articleAPI.favorite(article.id)
+      article.favorite_count++
+      article.is_favorited = true
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 </script>
 
@@ -206,10 +270,22 @@ const formatDate = (date: string) => {
                 </el-avatar>
                 <span class="author-name">{{ article.author_name }}</span>
               </div>
-              <div class="card-stats">
-                <span class="stat-item">
-                  <el-icon><Star /></el-icon>
+              <div class="card-actions">
+                <span
+                  class="action-btn like-btn"
+                  :class="{ active: article.is_liked }"
+                  @click="handleLike(article, $event)"
+                >
+                  <el-icon v-if="article.is_liked"><StarFilled /></el-icon>
+                  <el-icon v-else><Star /></el-icon>
                   {{ article.like_count }}
+                </span>
+                <span
+                  class="action-btn favorite-btn"
+                  :class="{ active: article.is_favorited }"
+                  @click="handleFavorite(article, $event)"
+                >
+                  <el-icon><Collection /></el-icon>
                 </span>
               </div>
             </div>
@@ -236,6 +312,13 @@ const formatDate = (date: string) => {
         </div>
       </div>
     </div>
+
+    <!-- 文章详情模态框 -->
+    <ArticleDetailModal
+      v-model:visible="showArticleModal"
+      :article-id="selectedArticleId"
+      @close="closeArticleModal"
+    />
   </div>
 </template>
 
@@ -342,11 +425,42 @@ const formatDate = (date: string) => {
   font-weight: 500;
 }
 
-.card-stats {
+.card-actions {
   display: flex;
   gap: 12px;
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 16px;
+  transition: all 0.3s;
+  user-select: none;
+  color: #666;
+}
+
+.action-btn:hover {
+  background: #f5f7fa;
+}
+
+.like-btn.active {
+  color: #f56c6c;
+}
+
+.like-btn.active:hover {
+  background: #fef0f0;
+}
+
+.favorite-btn.active {
+  color: #f39c12;
+}
+
+.favorite-btn.active:hover {
+  background: #fef5e7;
 }
 
 .stat-item {

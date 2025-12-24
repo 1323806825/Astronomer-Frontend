@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
 import { ElMessage } from 'element-plus'
-import { Star, Collection, Loading, User } from '@element-plus/icons-vue'
-import { categoryAPI } from '@/api'
+import { Star, Collection, Loading, User, StarFilled } from '@element-plus/icons-vue'
+import { categoryAPI, articleAPI } from '@/api'
 import type { Category } from '@/types'
 import dayjs from 'dayjs'
+import { useUserStore } from '@/stores/user'
+import ArticleDetailModal from '@/components/article/ArticleDetailModal.vue'
 
 const router = useRouter()
 const articleStore = useArticleStore()
+const userStore = useUserStore()
 
 const currentPage = ref(1)
 const pageSize = ref(12)
@@ -17,6 +20,13 @@ const isInitialLoading = ref(true)
 
 // 热门分类
 const hotCategories = ref<Category[]>([])
+const selectedCategoryId = ref<number | undefined>(undefined) // undefined 表示"推荐"
+
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+
+// 文章详情模态框
+const showArticleModal = ref(false)
+const selectedArticleId = ref<number | null>(null)
 
 onMounted(() => {
   loadArticles()
@@ -34,11 +44,18 @@ const loadArticles = async () => {
     articleStore.resetArticles()
     currentPage.value = 1
 
-    await articleStore.fetchArticles({
+    const params: any = {
       page: currentPage.value,
       page_size: pageSize.value,
       sort_by: 'time'
-    })
+    }
+
+    // 如果选择了分类，添加过滤条件
+    if (selectedCategoryId.value) {
+      params.category_id = selectedCategoryId.value
+    }
+
+    await articleStore.fetchArticles(params)
   } catch (error) {
     ElMessage.error('加载文章列表失败')
   } finally {
@@ -51,11 +68,19 @@ const loadMore = async () => {
 
   try {
     currentPage.value++
-    await articleStore.appendArticles({
+
+    const params: any = {
       page: currentPage.value,
       page_size: pageSize.value,
       sort_by: 'time'
-    })
+    }
+
+    // 如果选择了分类，添加过滤条件
+    if (selectedCategoryId.value) {
+      params.category_id = selectedCategoryId.value
+    }
+
+    await articleStore.appendArticles(params)
   } catch (error) {
     ElMessage.error('加载更多失败')
     currentPage.value--
@@ -76,22 +101,77 @@ const loadHotItems = async () => {
   try {
     // 加载热门分类
     const categories = await categoryAPI.getTree()
-    hotCategories.value = categories.slice(0, 6)
+    hotCategories.value = categories.slice(0, 10) // 最多显示10个
   } catch (error) {
     // 静默失败，不影响文章展示
   }
 }
 
-const goToDetail = (id: number) => {
-  router.push({ name: 'article-detail', params: { id } })
+const handleCategoryChange = (categoryId: number | undefined) => {
+  selectedCategoryId.value = categoryId
+  loadArticles()
 }
 
-const goToCategory = (id: number) => {
-  router.push({ path: '/articles', query: { category_id: id } })
+const goToDetail = (id: number) => {
+  selectedArticleId.value = id
+  showArticleModal.value = true
+}
+
+const closeArticleModal = () => {
+  showArticleModal.value = false
+  selectedArticleId.value = null
 }
 
 const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD')
+}
+
+const handleLike = async (article: any, event: Event) => {
+  event.stopPropagation() // 防止触发卡片点击
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    if (article.is_liked) {
+      await articleAPI.unlike(article.id)
+      article.like_count--
+      article.is_liked = false
+    } else {
+      await articleAPI.like(article.id)
+      article.like_count++
+      article.is_liked = true
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const handleFavorite = async (article: any, event: Event) => {
+  event.stopPropagation() // 防止触发卡片点击
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  try {
+    if (article.is_favorited) {
+      await articleAPI.unfavorite(article.id)
+      article.favorite_count--
+      article.is_favorited = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await articleAPI.favorite(article.id)
+      article.favorite_count++
+      article.is_favorited = true
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
 }
 </script>
 
@@ -99,24 +179,26 @@ const formatDate = (date: string) => {
   <div class="home">
     <div class="content">
       <div class="article-list">
-        <!-- 横向导航栏 -->
-        <div class="top-navigation">
-          <!-- 分类 -->
-          <div class="nav-section full-width">
-            <div class="section-header">
-              <el-icon><Collection /></el-icon>
-              <span>热门分类</span>
-              <router-link to="/categories" class="more-link">更多</router-link>
+        <!-- 频道导航  -->
+        <div class="channel-nav">
+          <div class="channel-list">
+            <!-- 推荐频道（默认） -->
+            <div
+              class="channel-item"
+              :class="{ active: selectedCategoryId === undefined }"
+              @click="handleCategoryChange(undefined)"
+            >
+              推荐
             </div>
-            <div class="nav-items">
-              <span
-                v-for="category in hotCategories"
-                :key="category.id"
-                class="nav-item"
-                @click="goToCategory(category.id)"
-              >
-                {{ category.name }}
-              </span>
+            <!-- 分类频道 -->
+            <div
+              v-for="category in hotCategories"
+              :key="category.id"
+              class="channel-item"
+              :class="{ active: selectedCategoryId === category.id }"
+              @click="handleCategoryChange(category.id)"
+            >
+              {{ category.name }}
             </div>
           </div>
         </div>
@@ -146,8 +228,23 @@ const formatDate = (date: string) => {
                       </el-avatar>
                       <span class="author">{{ article.author_name || '未知' }}</span>
                     </div>
-                    <div class="stats">
-                      <span><el-icon><Star /></el-icon> {{ article.like_count }}</span>
+                    <div class="actions">
+                      <span
+                        class="action-btn like-btn"
+                        :class="{ active: article.is_liked }"
+                        @click="handleLike(article, $event)"
+                      >
+                        <el-icon v-if="article.is_liked"><StarFilled /></el-icon>
+                        <el-icon v-else><Star /></el-icon>
+                        {{ article.like_count }}
+                      </span>
+                      <span
+                        class="action-btn favorite-btn"
+                        :class="{ active: article.is_favorited }"
+                        @click="handleFavorite(article, $event)"
+                      >
+                        <el-icon><Collection /></el-icon>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -175,6 +272,13 @@ const formatDate = (date: string) => {
         </div>
       </div>
     </div>
+
+    <!-- 文章详情模态框 -->
+    <ArticleDetailModal
+      v-model:visible="showArticleModal"
+      :article-id="selectedArticleId"
+      @close="closeArticleModal"
+    />
   </div>
 </template>
 
@@ -197,75 +301,56 @@ const formatDate = (date: string) => {
   min-width: 0;
 }
 
-/* 顶部导航栏 */
-.top-navigation {
+/* 频道导航 - 仿小红书风格 */
+.channel-nav {
   background: white;
   border-radius: 12px;
-  padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  position: sticky;
+  top: 90px;
+  z-index: 100;
+}
+
+.channel-list {
   display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
+  gap: 0;
+  padding: 16px 24px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
-.nav-section {
-  flex: 1;
-  min-width: 250px;
+.channel-list::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
-.nav-section.full-width {
-  flex: 1 1 100%;
-  min-width: 100%;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 16px;
-  font-weight: 600;
+.channel-item {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 15px;
+  font-weight: 500;
   color: #333;
-}
-
-.section-header .el-icon {
-  color: #409eff;
-}
-
-.more-link {
-  margin-left: auto;
-  font-size: 13px;
-  color: #909399;
-  text-decoration: none;
-  font-weight: normal;
-}
-
-.more-link:hover {
-  color: #409eff;
-}
-
-.nav-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.nav-item {
-  padding: 6px 16px;
-  background: #f5f7fa;
-  border-radius: 16px;
-  font-size: 13px;
-  color: #606266;
   cursor: pointer;
   transition: all 0.3s;
+  border-radius: 20px;
   white-space: nowrap;
+  user-select: none;
 }
 
-.nav-item:hover {
+.channel-item:hover {
+  background: #f5f7fa;
+  color: #409eff;
+}
+
+.channel-item.active {
   background: #409eff;
   color: white;
-  transform: translateY(-2px);
+}
+
+.channel-item.active:hover {
+  background: #66b1ff;
 }
 
 .articles-grid {
@@ -380,17 +465,42 @@ const formatDate = (date: string) => {
   white-space: nowrap;
 }
 
-.stats {
+.actions {
   display: flex;
   gap: 12px;
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
 }
 
-.stats span {
+.action-btn {
   display: flex;
   align-items: center;
   gap: 4px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 16px;
+  transition: all 0.3s;
+  user-select: none;
+  color: #666;
+}
+
+.action-btn:hover {
+  background: #f5f7fa;
+}
+
+.like-btn.active {
+  color: #f56c6c;
+}
+
+.like-btn.active:hover {
+  background: #fef0f0;
+}
+
+.favorite-btn.active {
+  color: #f39c12;
+}
+
+.favorite-btn.active:hover {
+  background: #fef5e7;
 }
 
 .load-more-indicator {

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
 import { ElMessage } from 'element-plus'
 import { Document, Star, Loading, User } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()
+const route = useRoute()
 const articleStore = useArticleStore()
 
 const currentPage = ref(1)
@@ -14,7 +15,25 @@ const pageSize = ref(15)
 const sortBy = ref('latest')
 const isInitialLoading = ref(true)
 
+// 从 query 参数获取过滤条件
+const categoryId = ref<number | undefined>()
+const topicId = ref<number | undefined>()
+const keyword = ref<string>('')
+const pageTitle = ref('文章列表')
+
 onMounted(() => {
+  // 读取 query 参数
+  if (route.query.category_id) {
+    categoryId.value = Number(route.query.category_id)
+  }
+  if (route.query.topic_id) {
+    topicId.value = Number(route.query.topic_id)
+  }
+  if (route.query.keyword) {
+    keyword.value = String(route.query.keyword)
+  }
+
+  updatePageTitle()
   loadArticles()
   window.addEventListener('scroll', handleScroll)
 })
@@ -23,6 +42,27 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
 
+// 监听路由变化，重新加载文章
+watch(() => route.query, (newQuery) => {
+  categoryId.value = newQuery.category_id ? Number(newQuery.category_id) : undefined
+  topicId.value = newQuery.topic_id ? Number(newQuery.topic_id) : undefined
+  keyword.value = newQuery.keyword ? String(newQuery.keyword) : ''
+  updatePageTitle()
+  loadArticles()
+})
+
+const updatePageTitle = () => {
+  if (keyword.value) {
+    pageTitle.value = `搜索：${keyword.value}`
+  } else if (categoryId.value) {
+    pageTitle.value = '分类文章'
+  } else if (topicId.value) {
+    pageTitle.value = '话题文章'
+  } else {
+    pageTitle.value = '文章列表'
+  }
+}
+
 const loadArticles = async () => {
   isInitialLoading.value = true
   try {
@@ -30,11 +70,24 @@ const loadArticles = async () => {
     articleStore.resetArticles()
     currentPage.value = 1
 
-    await articleStore.fetchArticles({
+    const params: any = {
       page: currentPage.value,
       page_size: pageSize.value,
       sort_by: sortBy.value === 'latest' ? 'time' : 'hot'
-    })
+    }
+
+    // 添加过滤条件
+    if (categoryId.value) {
+      params.category_id = categoryId.value
+    }
+    if (topicId.value) {
+      params.topic_id = topicId.value
+    }
+    if (keyword.value) {
+      params.keyword = keyword.value
+    }
+
+    await articleStore.fetchArticles(params)
   } catch (error) {
     ElMessage.error('加载文章列表失败')
   } finally {
@@ -48,11 +101,25 @@ const loadMore = async () => {
 
   try {
     currentPage.value++
-    await articleStore.appendArticles({
+
+    const params: any = {
       page: currentPage.value,
       page_size: pageSize.value,
       sort_by: sortBy.value === 'latest' ? 'time' : 'hot'
-    })
+    }
+
+    // 添加过滤条件
+    if (categoryId.value) {
+      params.category_id = categoryId.value
+    }
+    if (topicId.value) {
+      params.topic_id = topicId.value
+    }
+    if (keyword.value) {
+      params.keyword = keyword.value
+    }
+
+    await articleStore.appendArticles(params)
   } catch (error) {
     ElMessage.error('加载更多失败')
     currentPage.value--
@@ -88,7 +155,7 @@ const formatDate = (date: string) => {
 <template>
   <div class="article-list-page">
     <div class="header">
-      <h1>文章列表</h1>
+      <h1>{{ pageTitle }}</h1>
       <el-radio-group v-model="sortBy" @change="handleSortChange">
         <el-radio-button label="latest">最新</el-radio-button>
         <el-radio-button label="hot">最热</el-radio-button>
@@ -190,9 +257,8 @@ const formatDate = (date: string) => {
 }
 
 .article-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  column-count: 5;
+  column-gap: 20px;
   margin-bottom: 32px;
 }
 
@@ -203,6 +269,10 @@ const formatDate = (date: string) => {
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  break-inside: avoid;
+  margin-bottom: 20px;
+  display: inline-block;
+  width: 100%;
 }
 
 .article-card:hover {
@@ -212,7 +282,6 @@ const formatDate = (date: string) => {
 
 .card-cover {
   width: 100%;
-  height: 200px;
   overflow: hidden;
   background: #f5f7fa;
   display: flex;
@@ -222,8 +291,10 @@ const formatDate = (date: string) => {
 
 .card-cover img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 400px;
   object-fit: cover;
+  display: block;
 }
 
 .cover-placeholder {
@@ -317,35 +388,35 @@ const formatDate = (date: string) => {
   border-radius: 8px;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 瀑布流列数 */
 @media (min-width: 1920px) {
   .article-grid {
-    grid-template-columns: repeat(5, 1fr);
+    column-count: 5;
   }
 }
 
 @media (min-width: 1400px) and (max-width: 1919px) {
   .article-grid {
-    grid-template-columns: repeat(4, 1fr);
+    column-count: 4;
   }
 }
 
 @media (min-width: 900px) and (max-width: 1399px) {
   .article-grid {
-    grid-template-columns: repeat(3, 1fr);
+    column-count: 3;
   }
 }
 
 @media (min-width: 600px) and (max-width: 899px) {
   .article-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    column-count: 2;
+    column-gap: 16px;
   }
 }
 
 @media (max-width: 599px) {
   .article-grid {
-    grid-template-columns: repeat(1, 1fr);
+    column-count: 1;
   }
 }
 </style>

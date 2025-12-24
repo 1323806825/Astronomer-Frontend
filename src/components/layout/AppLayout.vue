@@ -14,18 +14,6 @@ import AppSidebar from './AppSidebar.vue'
         </div>
       </main>
     </div>
-    <footer class="app-footer">
-      <div class="footer-content">
-        <p>© 2025 Astronomer. All rights reserved.</p>
-        <div class="footer-links">
-          <router-link to="/about">关于我们</router-link>
-          <span>|</span>
-          <router-link to="/terms">用户协议</router-link>
-          <span>|</span>
-          <router-link to="/privacy">隐私政策</router-link>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -61,59 +49,15 @@ import AppSidebar from './AppSidebar.vue'
   padding: 0;
 }
 
-.app-footer {
-  background: white;
-  border-top: 1px solid #e4e7ed;
-  padding: 20px;
-  margin-left: 220px; /* 侧边栏宽度 */
-  margin-top: auto;
-}
-
-.footer-content {
-  width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  color: #909399;
-  font-size: 14px;
-}
-
-.footer-links {
-  margin-top: 10px;
-}
-
-.footer-links a,
-.footer-links .router-link-active,
-.footer-links .router-link-exact-active {
-  color: #909399;
-  text-decoration: none;
-  margin: 0 8px;
-}
-
-.footer-links a:hover {
-  color: #409eff;
-}
-
-.footer-links span {
-  margin: 0 8px;
-}
-
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .app-main {
-    margin-left: 180px;
-  }
-
-  .app-footer {
     margin-left: 180px;
   }
 }
 
 @media (max-width: 768px) {
   .app-main {
-    margin-left: 0;
-  }
-
-  .app-footer {
     margin-left: 0;
   }
 

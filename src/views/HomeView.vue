@@ -3,9 +3,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useArticleStore } from '@/stores/article'
 import { ElMessage } from 'element-plus'
-import { Star, Collection, ChatLineSquare, Notebook, Loading, User } from '@element-plus/icons-vue'
-import { categoryAPI, topicAPI, columnAPI } from '@/api'
-import type { Category, Topic, Column } from '@/types'
+import { Star, Collection, Loading, User } from '@element-plus/icons-vue'
+import { categoryAPI } from '@/api'
+import type { Category } from '@/types'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -15,10 +15,8 @@ const currentPage = ref(1)
 const pageSize = ref(12)
 const isInitialLoading = ref(true)
 
-// 热门分类、话题、专栏
+// 热门分类
 const hotCategories = ref<Category[]>([])
-const hotTopics = ref<Topic[]>([])
-const hotColumns = ref<Column[]>([])
 
 onMounted(() => {
   loadArticles()
@@ -79,14 +77,6 @@ const loadHotItems = async () => {
     // 加载热门分类
     const categories = await categoryAPI.getTree()
     hotCategories.value = categories.slice(0, 6)
-
-    // 加载热门话题
-    const topics = await topicAPI.getHot({ limit: 6 })
-    hotTopics.value = topics
-
-    // 加载热门专栏
-    const columns = await columnAPI.getList({ page: 1, page_size: 6 })
-    hotColumns.value = columns
   } catch (error) {
     // 静默失败，不影响文章展示
   }
@@ -98,14 +88,6 @@ const goToDetail = (id: number) => {
 
 const goToCategory = (id: number) => {
   router.push({ path: '/articles', query: { category_id: id } })
-}
-
-const goToTopic = (id: number) => {
-  router.push({ path: '/articles', query: { topic_id: id } })
-}
-
-const goToColumn = (id: number) => {
-  ElMessage.info('专栏详情页开发中')
 }
 
 const formatDate = (date: string) => {
@@ -120,7 +102,7 @@ const formatDate = (date: string) => {
         <!-- 横向导航栏 -->
         <div class="top-navigation">
           <!-- 分类 -->
-          <div class="nav-section">
+          <div class="nav-section full-width">
             <div class="section-header">
               <el-icon><Collection /></el-icon>
               <span>热门分类</span>
@@ -134,44 +116,6 @@ const formatDate = (date: string) => {
                 @click="goToCategory(category.id)"
               >
                 {{ category.name }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 话题 -->
-          <div class="nav-section">
-            <div class="section-header">
-              <el-icon><ChatLineSquare /></el-icon>
-              <span>热门话题</span>
-              <router-link to="/topics" class="more-link">更多</router-link>
-            </div>
-            <div class="nav-items">
-              <span
-                v-for="topic in hotTopics"
-                :key="topic.id"
-                class="nav-item"
-                @click="goToTopic(topic.id)"
-              >
-                # {{ topic.name }}
-              </span>
-            </div>
-          </div>
-
-          <!-- 专栏 -->
-          <div class="nav-section">
-            <div class="section-header">
-              <el-icon><Notebook /></el-icon>
-              <span>精选专栏</span>
-              <router-link to="/columns" class="more-link">更多</router-link>
-            </div>
-            <div class="nav-items">
-              <span
-                v-for="column in hotColumns"
-                :key="column.id"
-                class="nav-item"
-                @click="goToColumn(column.id)"
-              >
-                {{ column.title }}
               </span>
             </div>
           </div>
@@ -270,6 +214,11 @@ const formatDate = (date: string) => {
   min-width: 250px;
 }
 
+.nav-section.full-width {
+  flex: 1 1 100%;
+  min-width: 100%;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -320,40 +269,39 @@ const formatDate = (date: string) => {
 }
 
 .articles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  column-count: 5;
+  column-gap: 20px;
   margin-bottom: 30px;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 瀑布流列数 */
 @media (min-width: 1920px) {
   .articles-grid {
-    grid-template-columns: repeat(5, 1fr);
+    column-count: 5;
   }
 }
 
 @media (min-width: 1400px) and (max-width: 1919px) {
   .articles-grid {
-    grid-template-columns: repeat(4, 1fr);
+    column-count: 4;
   }
 }
 
 @media (min-width: 900px) and (max-width: 1399px) {
   .articles-grid {
-    grid-template-columns: repeat(3, 1fr);
+    column-count: 3;
   }
 }
 
 @media (min-width: 600px) and (max-width: 899px) {
   .articles-grid {
-    grid-template-columns: repeat(2, 1fr);
+    column-count: 2;
   }
 }
 
 @media (max-width: 599px) {
   .articles-grid {
-    grid-template-columns: repeat(1, 1fr);
+    column-count: 1;
   }
 
   .top-navigation {
@@ -373,6 +321,10 @@ const formatDate = (date: string) => {
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  break-inside: avoid;
+  margin-bottom: 20px;
+  display: inline-block;
+  width: 100%;
 }
 
 .article-card:hover {
@@ -382,8 +334,10 @@ const formatDate = (date: string) => {
 
 .cover {
   width: 100%;
-  height: 180px;
+  height: auto;
+  max-height: 400px;
   object-fit: cover;
+  display: block;
 }
 
 .article-info {

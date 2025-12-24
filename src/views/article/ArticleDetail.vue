@@ -137,6 +137,15 @@ const goToEdit = () => {
   router.push({ name: 'article-edit', params: { id: articleId.value } })
 }
 
+const handleTopicClick = (topic: string) => {
+  // 在新标签页打开搜索结果
+  const url = router.resolve({
+    path: '/articles',
+    query: { keyword: topic }
+  })
+  window.open(url.href, '_blank')
+}
+
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -201,19 +210,21 @@ const formatDate = (date: string) => {
               class="cover-image"
             />
             <div class="article-content" v-html="article.content"></div>
+
+            <!-- 话题标签（使用 tags 字段） -->
+            <div v-if="article.tags && article.tags.length > 0" class="article-topics">
+              <span
+                v-for="(tag, index) in article.tags"
+                :key="index"
+                class="topic-tag"
+                @click.stop="handleTopicClick(tag)"
+              >
+                #{{ tag }}
+              </span>
+            </div>
           </div>
 
-          <!-- 文章标签 -->
-          <div v-if="article.tags && article.tags.length > 0" class="article-tags">
-            <el-tag
-              v-for="tag in article.tags"
-              :key="tag"
-              type="info"
-              effect="plain"
-            >
-              {{ tag }}
-            </el-tag>
-          </div>
+          <!-- 移除原来的文章标签部分，因为已经在上面显示为话题了 -->
 
           <!-- 互动按钮 -->
           <div class="article-actions">
@@ -344,6 +355,32 @@ const formatDate = (date: string) => {
   font-size: 16px;
   line-height: 1.8;
   color: #1f2329;
+}
+
+.article-topics {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.topic-tag {
+  display: inline-block;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.topic-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .article-content :deep(h1),

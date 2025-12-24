@@ -126,8 +126,7 @@
 
 <style scoped>
 .privacy {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .privacy-container {
